@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-mpl.rcParams['text.usetex'] =  True
+#mpl.rcParams['text.usetex'] =  True
 import numpy as np
 import os
 # Read a .trc file and print its content
@@ -13,6 +13,7 @@ from tifffile import imread
 from tqdm import trange
 from skimage import filters
 from skimage.feature import peak_local_max
+from datetime import datetime 
 
 def tagger_event(name,ceil,ceil_hminus,left,right):
     
@@ -52,25 +53,26 @@ def tagger_event(name,ceil,ceil_hminus,left,right):
         else:
             return 'BACKGD_BACKGROUND',fname
 
-def plot_tif(date,threshold_multiplier,min_peaks,patch_radius,min_distance,cmap):
+def plot_tif(root,date,threshold_multiplier,min_peaks,patch_radius,min_distance):
     dir = ''#date+'/'#+date+'scope173/'
-    hminus_mixing = np.loadtxt(date+'/Hminus_mixing.txt', dtype=str)
+    hminus_mixing = np.loadtxt(root+date+'/Hminus_mixing.txt', dtype=str)
     hminus_mixing = np.char.replace(hminus_mixing, '/'+date+'scope173', '')
     hminus_mixing = np.char.replace(hminus_mixing, 'WF173_', 'PCO-MCP6_exp_1_us_')
     hminus_mixing = np.char.replace(hminus_mixing, '_C4.trc', '.tif')
-    backgd_mixing = np.loadtxt(date+'/Backgd_mixing.txt', dtype=str)
+    backgd_mixing = np.loadtxt(root+date+'/Backgd_mixing.txt', dtype=str)
     backgd_mixing = np.char.replace(backgd_mixing, '/'+date+'scope173', '')
     backgd_mixing = np.char.replace(backgd_mixing, 'WF173_', 'PCO-MCP6_exp_1_us_')
     backgd_mixing = np.char.replace(backgd_mixing, '_C4.trc', '.tif')
-    hminus_background = np.loadtxt(date+'/Hminus_background.txt', dtype=str)
+    hminus_background = np.loadtxt(root+date+'/Hminus_background.txt', dtype=str)
     hminus_background = np.char.replace(hminus_background, '/'+date+'scope173', '')
     hminus_background = np.char.replace(hminus_background, 'WF173_', 'PCO-MCP6_exp_1_us_')
     hminus_background = np.char.replace(hminus_background, '_C4.trc', '.tif')
-    backgd_background = np.loadtxt(date+'/Backgd_background.txt', dtype=str)
+    backgd_background = np.loadtxt(root+date+'/Backgd_background.txt', dtype=str)
     backgd_background = np.char.replace(backgd_background, '/'+date+'scope173', '')
     backgd_background = np.char.replace(backgd_background, 'WF173_', 'PCO-MCP6_exp_1_us_')
     backgd_background = np.char.replace(backgd_background, '_C4.trc', '.tif')
-
+    
+    dir = root+dir
     sum_image = None
     for tif_file in hminus_mixing:
         try:
@@ -142,26 +144,14 @@ def plot_tif(date,threshold_multiplier,min_peaks,patch_radius,min_distance,cmap)
     return sum_image1, sum_image2, sum_image3, sum_image4
 
 def background_loop():
-    while True:
-        image1,image2,image3,image4 = plot_tif(date,threshold_multiplier,min_peaks,patch_radius,min_distance,cmap)
-        # Update the image in the plot
-        img_display1.set_data(image1)
-        img_display2.set_data(image2)
-        img_display3.set_data(image3)
-        img_display4.set_data(image4)
-        #ax.set_title(f"Updated: {time.strftime('%H:%M:%S')}")
-
-        plt.savefig(date+'/ALL-TIF.png', dpi=300, bbox_inches='tight')
-        plt.draw()
-        plt.pause(0.01)  # brief pause to allow GUI event loop
-
-        time.sleep(120)  # wait before restarting
-
-while True:
+    #print('1')
     # Example usage
+    root = 'Z:/data/'
     date = '25_07_11'
+    time_cutoff = datetime(2025,7,11,17,40)
+    cutoff_timestamp = time.mktime(time_cutoff.timetuple())
     dir_name  = date+'/'+date+'scope173/'
-    trc_files = [f for f in os.listdir(dir_name+'.') if f.endswith('_C4.trc')]
+    trc_files = [f for f in os.listdir(root+dir_name+'.') if f.endswith('_C4.trc') and os.path.getmtime(os.path.join(root+dir_name+'.',f)) > cutoff_timestamp]
 
     ceil                 = -0.0020    # between mixing and background
     ceil_hminus          = 0.0010     # between H- and background
@@ -180,7 +170,7 @@ while True:
     backgd_background = []
     
     for w in trange(len(trc_files)):  # Adjust the range as needed
-        tag, fname = tagger_event(dir_name+trc_files[w], ceil, ceil_hminus, left, right)
+        tag, fname = tagger_event(root+dir_name+trc_files[w], ceil, ceil_hminus, left, right)
         if tag == 'HMINUS_MIXING':
             hminus_mixing.append(fname)
         elif tag == 'BACKGD_MIXING':
@@ -190,31 +180,66 @@ while True:
         elif tag == 'BACKGD_BACKGROUND':
             backgd_background.append(fname)
     
-    np.savetxt(date+'/Hminus_mixing.txt', hminus_mixing, fmt='%s')
-    np.savetxt(date+'/Backgd_mixing.txt', backgd_mixing, fmt='%s')
-    np.savetxt(date+'/Hminus_background.txt', hminus_background, fmt='%s')
-    np.savetxt(date+'/Backgd_background.txt', backgd_background, fmt='%s')
-
-    # Setup the initial plot
-    plt.ion()  # interactive mode on
+    np.savetxt(root+date+'/Hminus_mixing.txt', hminus_mixing, fmt='%s')
+    np.savetxt(root+date+'/Backgd_mixing.txt', backgd_mixing, fmt='%s')
+    np.savetxt(root+date+'/Hminus_background.txt', hminus_background, fmt='%s')
+    np.savetxt(root+date+'/Backgd_background.txt', backgd_background, fmt='%s')
+    
+    #plt.clf()
+    image1,image2,image3,image4 = plot_tif(root,date,threshold_multiplier,min_peaks,patch_radius,min_distance)
+    # Update the image in the plot
     fig, ax = plt.subplots(2, 2, figsize=(8,8), dpi=100, sharex=True,sharey=True)
-    initial_image1,initial_image2,initial_image3,initial_image4 = plot_tif(date,threshold_multiplier,min_peaks,patch_radius,min_distance,cmap)
-    img_display1 = ax[0,0].imshow(initial_image1)
-    img_display2 = ax[0,1].imshow(initial_image2)
-    img_display3 = ax[1,0].imshow(initial_image3)
-    img_display4 = ax[1,1].imshow(initial_image4)
+    
+    ax[0,0].imshow(image1,cmap)
+    ax[0,1].imshow(image2,cmap)
+    ax[1,0].imshow(image3,cmap)
+    ax[1,1].imshow(image4,cmap)
 
-    ax[0,0].set_title('$\mathrm{H}^-$ mixing :'+str(int(len(hminus_mixing)))+' shots')
-    ax[0,1].set_title('$\mathrm{H}^-$ background:' + str(len(hminus_background)) + ' shots')
+    hminus_mixing = np.loadtxt(root+date+'/Hminus_mixing.txt', dtype=str)
+    hminus_background = np.loadtxt(root+date+'/hminus_background.txt', dtype=str)
+    backgd_mixing = np.loadtxt(root+date+'/backgd_mixing.txt', dtype=str)
+    backgd_background = np.loadtxt(root+date+'/backgd_background.txt', dtype=str)
+    ax[0,0].set_title('H- mixing :'+str(int(len(hminus_mixing)))+' shots')
+    ax[0,1].set_title('H- background:' + str(len(hminus_background)) + ' shots')
     ax[1,0].set_title('background mixing : ' + str(len(backgd_mixing)) + ' shots')
     ax[1,1].set_title('background background :' + str(len(backgd_background)) + ' shots')
 
+    plt.savefig('Z:/data/'+date+'/ALL-TIF.png', dpi=300, bbox_inches='tight')
+    #plt.draw()
+    #plt.pause(0.01)  # brief pause to allow GUI event loop
+
+    time.sleep(20)  # wait before restarting
+
+while True:
     
-    plt.show()
+
+    # Setup the initial plot
+    #plt.ion()  # interactive mode on
+    #fig, ax = plt.subplots(2, 2, figsize=(8,8), dpi=100, sharex=True,sharey=True)
+    #initial_image1,initial_image2,initial_image3,initial_image4 = plot_tif(root,date,threshold_multiplier,min_peaks,patch_radius,min_distance)
+    #img_display1 = ax[0,0].imshow(initial_image1)
+    #img_display2 = ax[0,1].imshow(initial_image2)
+    #img_display3 = ax[1,0].imshow(initial_image3)
+    #img_display4 = ax[1,1].imshow(initial_image4)
+
+    #ax[0,0].set_title('H- mixing :'+str(int(len(hminus_mixing)))+' shots')
+    #ax[0,1].set_title('H- background:' + str(len(hminus_background)) + ' shots')
+    #ax[1,0].set_title('background mixing : ' + str(len(backgd_mixing)) + ' shots')
+    #ax[1,1].set_title('background background :' + str(len(backgd_background)) + ' shots')
+
+    
+    #plt.show()
 
 
     # Start background thread
-    thread = threading.Thread(target=background_loop, daemon=True)
-    thread.start()
+    # thread = threading.Thread(target=background_loop, daemon=True)
+    # thread.start()
 
-    plt.pause(1)  # pause to allow the plot to render
+    #plt.pause(100)  # pause to allow the plot to render
+    
+    background_loop()
+    now = datetime.datetime.now()
+    print('last update : ', now)
+    print('0')
+
+     
