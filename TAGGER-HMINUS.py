@@ -208,38 +208,15 @@ def background_loop():
     #plt.draw()
     #plt.pause(0.01)  # brief pause to allow GUI event loop
 
-    time.sleep(20)  # wait before restarting
+    #time.sleep(20)  # wait before restarting
 
-while True:
+if __name__ == "__main__" :
+    thread = threading.Thread(target=background_loop,daemon=True)
+    thread.start()
+    while True:
     
-
-    # Setup the initial plot
-    #plt.ion()  # interactive mode on
-    #fig, ax = plt.subplots(2, 2, figsize=(8,8), dpi=100, sharex=True,sharey=True)
-    #initial_image1,initial_image2,initial_image3,initial_image4 = plot_tif(root,date,threshold_multiplier,min_peaks,patch_radius,min_distance)
-    #img_display1 = ax[0,0].imshow(initial_image1)
-    #img_display2 = ax[0,1].imshow(initial_image2)
-    #img_display3 = ax[1,0].imshow(initial_image3)
-    #img_display4 = ax[1,1].imshow(initial_image4)
-
-    #ax[0,0].set_title('H- mixing :'+str(int(len(hminus_mixing)))+' shots')
-    #ax[0,1].set_title('H- background:' + str(len(hminus_background)) + ' shots')
-    #ax[1,0].set_title('background mixing : ' + str(len(backgd_mixing)) + ' shots')
-    #ax[1,1].set_title('background background :' + str(len(backgd_background)) + ' shots')
-
-    
-    #plt.show()
-
-
-    # Start background thread
-    # thread = threading.Thread(target=background_loop, daemon=True)
-    # thread.start()
-
-    #plt.pause(100)  # pause to allow the plot to render
-    
-    background_loop()
-    now = datetime.datetime.now()
-    print('last update : ', now)
-    print('0')
+        now = datetime.datetime.now()
+        print('last update : ', now)
+        time.sleep(10)
 
      
